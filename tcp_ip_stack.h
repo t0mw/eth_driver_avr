@@ -16,13 +16,16 @@ enum tcp_ip_return_codes_t
 typedef
 enum type_tcp_ip_protocol
 {
-    TCP_IP_ETHERNET,
+    TCP_IP_PROTO_UNKNOWN,
 
-    TCP_IP_ARP,
-    TCP_IP_IP,
+    TCP_IP_PROTO_ETHERNET,
 
-    TCP_IP_TCP,
-    TCP_IP_UDP
+    TCP_IP_PROTO_ARP,
+    TCP_IP_PROTO_IP,
+
+    TCP_IP_PROTO_TCP,
+    TCP_IP_PROTO_UDP,
+    TCP_IP_PROTO_ICMP
 } tcp_ip_protocol_t;
 
 typedef void (*tcp_ip_hook_recv)(const tcp_ip_stack_t *const tcp_ip_stack,
