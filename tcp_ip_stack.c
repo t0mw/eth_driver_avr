@@ -34,8 +34,6 @@ static tcp_ip_protocol_t tcp_ip_frame_eth_get_protocol(const uint8_t *const fram
 
 static tcp_ip_protocol_t tcp_ip_frame_ip_get_protocol(const uint8_t *const frame)
 {
-    // return TCP/UDP
-
     static const uint8_t IP_PROTOCOL_POS    = 0x09U;
     static const uint8_t IP_PROTOCOL_TCP    = 0x06U;
     static const uint8_t IP_PROTOCOL_UDP    = 0x11U;
@@ -63,11 +61,53 @@ static void tcp_ip_hooks_notify(const tcp_ip_stack_t *const stack,
                                 uint16_t *const response_data_len)
 {
     // Check if binded to "protocol".
+    if (stack->bind_data.bind_option == TCP_IP_PROTO_UNKNOWN ||
+        stack->bind_data.bind_option != protocol)
+    {
+        return;
+    }
+
+    // If TCP/UDP - check if binded to port.
+    if (protocol == TCP_IP_PROTO_TCP ||
+        protocol == TCP_IP_PROTO_UDP)
+    {
+        if (stack->bind_data.bind_port != frame[TCP_IP_TCP_UDP_PORT_DEST])
+            return;
+    }
+
+    uint16_t offset = 0U;
+
+    // IP/ARP - strip ethernet frame
+    // TCP/UDP - strip the IP frame
+    switch (protocol)
+    {
+        case TCP_IP_PROTO_ARP:
+            offset = 0U;
+        break;
+        case TCP_IP_PROTO_IP:
+            offset = 0U;
+        break;
+
+        case TCP_IP_PROTO_TCP:      // fallthrough
+        case TCP_IP_PROTO_UDP:      // fallthrough
+        case TCP_IP_PROTO_ICMP:     // fallthrough
+            offset = TCP_IP_IP_FRAME_HEADER_SIZE;
+        break;
+
+        default:
+            p_assert(0); // Should never end here.
+        break;
+    }
 
     // Send only the "data" inside of protocol in "frame".
     //  i.e. binded to IP - send only TCP frame, binded
     //  to TCP - send only data. Cut down reponse_data
     // to point into "data" part of the protocol.
+    stack->bind_data.hook_recv(stack,
+                               frame + offset,
+                               frame_len - offset,
+                               response_data,
+                               response_data_len);
 }
 
 static uint8_t tcp_ip_handle_arp(const tcp_ip_stack_t *const stack,

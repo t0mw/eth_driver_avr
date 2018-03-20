@@ -10,6 +10,9 @@
 #define TCP_IP_TCP_FRAME_HEADER_SIZE    0U
 #define TCP_IP_ICMP_FRAME_HEADER_SIZE   0U
 
+#define TCP_IP_TCP_UDP_PORT_DEST        0U
+#define TCP_IP_TCP_UDP_PORT_SRC         2U
+
 enum tcp_ip_return_codes_t
 {
     TCP_IP_RC_FAIL,
