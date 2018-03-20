@@ -582,13 +582,15 @@ uint8_t eth_driver_enc28j60_data_receive(const eth_driver_t *const drv,
                                          uint16_t *const data_len)
 {
     uint8_t eth_frame_buffer_recv[ETH_FRAME_SIZE_MAX];
-    uint8_t eth_frame_buffer_recv_size = 0U;
+    uint16_t eth_frame_buffer_recv_size = 0U;
 
     // Receive eth frame from enc28j60.
-    uint8_t rc = eth_driver_enc28j60_eth_packet_receive(data,
-                                                        data_len);
+    uint8_t rc = eth_driver_enc28j60_eth_packet_receive(eth_frame_buffer_recv,
+                                                        &eth_frame_buffer_recv_size);
     ETH_RC_CHECK(rc);
 
+    // TODO: copy only the encapsulated protocol
+    //       into the data, strip down data_len.
     memcpy(data,
            eth_frame_buffer_recv,
            eth_frame_buffer_recv_size);
