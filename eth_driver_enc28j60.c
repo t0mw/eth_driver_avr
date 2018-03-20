@@ -1,6 +1,9 @@
+#include "arch_specific.h"
 #include "enc28j60_defs.h"
 #include "eth_driver_enc28j60.h"
 #include "spi_driver_avr.h"
+
+#include <string.h>
 
 static spi_driver_t     spi_driver;
 static uint16_t         next_packet_ptr = 0U;
@@ -37,7 +40,7 @@ static uint8_t eth_driver_enc28j60_instruction_read(const uint8_t opcode,
 
     data_len = 1U;
     rc_spi = spi_driver_data_receive(&spi_driver,
-                                     &data,
+                                     data,
                                      &data_len);
     if (rc_spi != SPI_RC_OK)
         return ETH_RC_FAIL;
@@ -125,7 +128,7 @@ static uint8_t eth_driver_enc28j60_control_reg_write(const uint8_t reg_addr,
 }
 
 // SPI phy register read.
-static uint8_t eth_driver_enc28j60_phy_reg_read(const uint8_t *const addr,
+static uint8_t eth_driver_enc28j60_phy_reg_read(const uint8_t addr,
                                                 uint16_t *const read_byte)
 {
     uint8_t rc = 0U;
@@ -138,7 +141,8 @@ static uint8_t eth_driver_enc28j60_phy_reg_read(const uint8_t *const addr,
                                                MIIRD);
     ETH_RC_CHECK(rc);
 
-    _delay_us(15U);
+    // _delay_us(15U);
+    DELAY_WAIT_US(15U);
 
     uint8_t mistat_busy = BUSY;
     do
@@ -169,7 +173,7 @@ static uint8_t eth_driver_enc28j60_phy_reg_read(const uint8_t *const addr,
 }
 
 // SPI phy register write.
-static uint8_t eth_driver_enc28j60_phy_reg_write(const uint8_t *const addr,
+static uint8_t eth_driver_enc28j60_phy_reg_write(const uint8_t addr,
                                                  const uint16_t data)
 {
     uint8_t rc = 0U;
@@ -200,7 +204,7 @@ static uint8_t eth_driver_enc28j60_phy_reg_write(const uint8_t *const addr,
 
 // Send ethernet packet.
 static uint8_t eth_driver_enc28j60_eth_packet_send(const uint8_t *const packet,
-                                                   const uint8_t packet_len)
+                                                   const uint16_t packet_len)
 {
     uint8_t rc = 0U;
 
@@ -345,7 +349,7 @@ static uint8_t eth_driver_enc28j60_eth_packet_receive(uint8_t *const packet,
     rx_stats |= ( (uint16_t)rx_stats_byte ) << 8U;
 
     // Check if RECEIVED_OK is set.
-    if (( rxstats & 0x80 ) == 0U)
+    if (( rx_stats & 0x80 ) == 0U)
         return ETH_RC_FAIL;
 
     // Read the data.
@@ -377,8 +381,11 @@ static uint8_t eth_driver_enc28j60_eth_packet_receive(uint8_t *const packet,
         return ETH_RC_ETH_PACKET_RECV_FAIL;
 */
 
-    if (( next_packet_ptr - 1U ) < RXSTART_INIT ||
-        ( next_packet_ptr - 1U ) > RXSTOP_INIT)
+    // ????? unsigned & 0 comparison
+    // if (( next_packet_ptr - 1U ) < RXSTART_INIT ||
+    //    ( next_packet_ptr - 1U ) > RXSTOP_INIT)
+
+    if (( next_packet_ptr - 1U ) > RXSTOP_INIT)
     {
         rc = eth_driver_enc28j60_control_reg_write(ERXRDPTL,
                                                    ( RXSTOP_INIT ) & 0xFFU);
@@ -416,7 +423,8 @@ static uint8_t eth_driver_enc28j60_hardware_init(const eth_driver_t *const drv)
                                                0,
                                                SC);
 
-    _delay_us(205); // ???
+    // _delay_us(205); // ???
+    DELAY_WAIT_US(205U);
 
     next_packet_ptr = RXSTART_INIT;
 
@@ -571,10 +579,10 @@ uint8_t eth_driver_enc28j60_is_link_up(const eth_driver_t *const drv)
 
 uint8_t eth_driver_enc28j60_data_receive(const eth_driver_t *const drv,
                                          uint8_t *const data,
-                                         uint8_t *const data_len)
+                                         uint16_t *const data_len)
 {
-    uint8_t eth_frame_buffer_recv_size = 0U;
     uint8_t eth_frame_buffer_recv[ETH_FRAME_SIZE_MAX];
+    uint8_t eth_frame_buffer_recv_size = 0U;
 
     // Receive eth frame from enc28j60.
     uint8_t rc = eth_driver_enc28j60_eth_packet_receive(data,
@@ -592,9 +600,8 @@ uint8_t eth_driver_enc28j60_data_receive(const eth_driver_t *const drv,
 
 uint8_t eth_driver_enc28j60_data_send(const eth_driver_t *const drv,
                                       const uint8_t *const data,
-                                      const uint8_t data_len)
+                                      const uint16_t data_len)
 {
-
     // TODO: need to encapsulate data into ethernet
     //       frame header.
 

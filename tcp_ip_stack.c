@@ -12,44 +12,22 @@
 
 static tcp_ip_protocol_t tcp_ip_frame_eth_get_protocol(const uint8_t *const frame)
 {
-    // Fetch ethernet's ethertype, translate
-    // to TCP_IP stack local representation.
-
     static const uint8_t ETHERTYPE_POS      = 0x0CU;
     static const uint8_t ETHERTYPE_ARP_H    = 0x08U;
     static const uint8_t ETHERTYPE_ARP_L    = 0x06U;
     static const uint8_t ETHERTYPE_IP_H     = 0x08U;
     static const uint8_t ETHERTYPE_IP_L     = 0x00U;
 
-    // Check the high byte first.
-    switch(frame[ETHERTYPE_POS])
-    {
-        case ETHERTYPE_ARP_H:
-        {
-            switch(frame[ETHERTYPE_POS + 1])
-            {
-                case ETHERTYPE_ARP_L:
-                    return TCP_IP_PROTO_ARP;
-                break;
-            }
-        }
-        break;
+    const uint8_t ethertype_high = (uint8_t)frame[ETHERTYPE_POS];
+    const uint8_t ethertype_low = (uint8_t)frame[ETHERTYPE_POS + 1];
 
-        case ETHERTYPE_IP_H:
-        {
-            switch(frame[ETHERTYPE_POS + 1])
-            {
-                case ETHERTYPE_IP_L:
-                    return TCP_IP_PROTO_IP;
-                break;
-            }
-        }
-        break;
+    if(ethertype_high == ETHERTYPE_IP_H &&
+       ethertype_low == ETHERTYPE_ARP_L)
+       return TCP_IP_PROTO_ARP;
 
-        default:
-            return TCP_IP_PROTO_UNKNOWN;
-        break;
-    }
+    if(ethertype_high == ETHERTYPE_ARP_H &&
+       ethertype_low == ETHERTYPE_IP_L)
+       return TCP_IP_PROTO_IP;
 
     return TCP_IP_PROTO_UNKNOWN;
 }
@@ -63,30 +41,16 @@ static tcp_ip_protocol_t tcp_ip_frame_ip_get_protocol(const uint8_t *const frame
     static const uint8_t IP_PROTOCOL_UDP    = 0x11U;
     static const uint8_t IP_PROTOCOL_ICMP   = 0x01U;
 
-    switch(frame[IP_PROTOCOL_POS])
-    {
-        case IP_PROTOCOL_TCP:
-        {
-            return TCP_IP_PROTO_TCP;
-        }
-        break;
+    const uint8_t ip_protocol = frame[IP_PROTOCOL_POS];
 
-        case IP_PROTOCOL_UDP:
-        {
-            return TCP_IP_PROTO_UDP;
-        }
-        break;
+    if(ip_protocol == IP_PROTOCOL_TCP)
+       return TCP_IP_PROTO_TCP;
 
-        case IP_PROTOCOL_ICMP:
-        {
-            return TCP_IP_PROTO_ICMP;
-        }
-        break;
+    if(ip_protocol == IP_PROTOCOL_UDP)
+       return TCP_IP_PROTO_UDP;
 
-        default:
-            return TCP_IP_PROTO_UNKNOWN;
-        break;
-    }
+    if(ip_protocol == IP_PROTOCOL_ICMP)
+       return TCP_IP_PROTO_ICMP;
 
     return TCP_IP_PROTO_UNKNOWN;
 }
@@ -94,9 +58,9 @@ static tcp_ip_protocol_t tcp_ip_frame_ip_get_protocol(const uint8_t *const frame
 static void tcp_ip_hooks_notify(const tcp_ip_stack_t *const stack,
                                 const tcp_ip_protocol_t protocol,
                                 const uint8_t *const frame,
-                                const uint8_t frame_len,
+                                const uint16_t frame_len,
                                 uint8_t *const response_data,
-                                uint8_t *const response_data_len)
+                                uint16_t *const response_data_len)
 {
     // Check if binded to "protocol".
 
@@ -108,9 +72,9 @@ static void tcp_ip_hooks_notify(const tcp_ip_stack_t *const stack,
 
 static uint8_t tcp_ip_handle_arp(const tcp_ip_stack_t *const stack,
                                  const uint8_t *const frame,
-                                 const uint8_t frame_len,
+                                 const uint16_t frame_len,
                                  uint8_t *const frame_response,
-                                 uint8_t *const frame_response_len)
+                                 uint16_t *const frame_response_len)
 {
     // ARP reply.
 
@@ -119,9 +83,9 @@ static uint8_t tcp_ip_handle_arp(const tcp_ip_stack_t *const stack,
 
 static uint8_t tcp_ip_handle_tcp(const tcp_ip_stack_t *const stack,
                                  const uint8_t *const frame,
-                                 const uint8_t frame_len,
+                                 const uint16_t frame_len,
                                  uint8_t *const frame_response,
-                                 uint8_t *const frame_response_len)
+                                 uint16_t *const frame_response_len)
 {
     // Adjust seq/ack numbers.
     // Send reply.
@@ -131,9 +95,9 @@ static uint8_t tcp_ip_handle_tcp(const tcp_ip_stack_t *const stack,
 
 static uint8_t tcp_ip_handle_udp(const tcp_ip_stack_t *const stack,
                                  const uint8_t *const frame,
-                                 const uint8_t frame_len,
+                                 const uint16_t frame_len,
                                  uint8_t *const frame_response,
-                                 uint8_t *const frame_response_len)
+                                 uint16_t *const frame_response_len)
 {
     // Verify that there is a response for this packet.
     if (frame_response_len == 0U)
@@ -150,9 +114,9 @@ static uint8_t tcp_ip_handle_udp(const tcp_ip_stack_t *const stack,
 
     rc = tcp_ip_make_frame_udp(stack,
                                frame_response + TCP_IP_IP_FRAME_HEADER_SIZE + TCP_IP_UDP_FRAME_HEADER_SIZE,
-                               frame_response_len - TCP_IP_IP_FRAME_HEADER_SIZE - TCP_IP_UDP_FRAME_HEADER_SIZE,
+                               (*frame_response_len) - TCP_IP_IP_FRAME_HEADER_SIZE - TCP_IP_UDP_FRAME_HEADER_SIZE,
                                frame_response,
-                               &frame_response_len);
+                               frame_response_len);
     TCP_IP_RC_CHECK(rc);
 
     return TCP_IP_RC_OK;
@@ -160,9 +124,9 @@ static uint8_t tcp_ip_handle_udp(const tcp_ip_stack_t *const stack,
 
 static uint8_t tcp_ip_handle_ip(const tcp_ip_stack_t *const stack,
                                 const uint8_t *const frame,
-                                const uint8_t frame_len,
+                                const uint16_t frame_len,
                                 uint8_t *const frame_response,
-                                uint8_t *const frame_response_len)
+                                uint16_t *const frame_response_len)
 {
     // Is this packet addressed for this device?
     uint8_t i = 0U;
@@ -230,16 +194,16 @@ static uint8_t tcp_ip_handle_ip(const tcp_ip_stack_t *const stack,
 
     rc = tcp_ip_make_frame_ip(stack,
                               frame_response + TCP_IP_IP_FRAME_HEADER_SIZE,
-                              frame_response_len - TCP_IP_IP_FRAME_HEADER_SIZE,
+                              (*frame_response_len) - TCP_IP_IP_FRAME_HEADER_SIZE,
                               frame_response,
-                              &frame_response_len);
+                              frame_response_len);
     TCP_IP_RC_CHECK(rc);
 
     return rc;
 }
 
 uint8_t tcp_ip_initialize(tcp_ip_stack_t *const stack,
-                          const eth_driver_t *const drv,
+                          eth_driver_t *const drv,
                           const uint8_t *const ipv4_addr)
 {
     memcpy(stack->ipv4_address,
@@ -251,16 +215,49 @@ uint8_t tcp_ip_initialize(tcp_ip_stack_t *const stack,
     return TCP_IP_RC_OK;
 }
 
+uint8_t tcp_ip_make_frame_ip(const tcp_ip_stack_t *const stack,
+                             const uint8_t *const data,
+                             const uint16_t data_len,
+                             uint8_t *const frame,
+                             uint16_t *const frame_len)
+{
+    // ...
+
+    return TCP_IP_RC_OK;
+}
+
+uint8_t tcp_ip_make_frame_tcp(const tcp_ip_stack_t *const stack,
+                              const uint8_t *const data,
+                              const uint16_t data_len,
+                              uint8_t *const frame,
+                              uint16_t *const frame_len)
+{
+    // ...
+
+    return TCP_IP_RC_OK;
+}
+
+uint8_t tcp_ip_make_frame_udp(const tcp_ip_stack_t *const stack,
+                              const uint8_t *const data,
+                              const uint16_t data_len,
+                              uint8_t *const frame,
+                              uint16_t *const frame_len)
+{
+    // ...
+
+    return TCP_IP_RC_OK;
+}
+
 uint8_t tcp_ip_send_tcp(tcp_ip_stack_t *const stack,
                         const uint8_t *const data,
-                        const uint8_t data_len)
+                        const uint16_t data_len)
 {
     uint8_t rc = 0U;
 
     // Fragmentation not allowed - always send an IP packet that can be
     // fit into ethernet packet.
     uint8_t frame[ETH_FRAME_SIZE_MAX - ETH_FRAME_HEADER_SIZE_NO_CHECKSUM] = { 0U };
-    uint8_t frame_len = 0U;
+    uint16_t frame_len = 0U;
 
     // TODO:
     //      Is the session established?
@@ -294,13 +291,13 @@ uint8_t tcp_ip_send_tcp(tcp_ip_stack_t *const stack,
 
 uint8_t tcp_ip_send_udp(tcp_ip_stack_t *const stack,
                         const uint8_t *const data,
-                        const uint8_t data_len)
+                        const uint16_t data_len)
 {
     uint8_t rc = 0U;
 
     // Format UDP frame, send over ethernet.
     uint8_t frame[ETH_FRAME_SIZE_MAX - ETH_FRAME_HEADER_SIZE_NO_CHECKSUM] = { 0U };
-    uint8_t frame_len = 0U;
+    uint16_t frame_len = 0U;
 
     rc = tcp_ip_make_frame_udp(stack,
                                data,
@@ -327,7 +324,7 @@ uint8_t tcp_ip_send_udp(tcp_ip_stack_t *const stack,
 
 uint8_t tcp_ip_bind(tcp_ip_stack_t *const stack,
                     const tcp_ip_protocol_t bind_option,
-                    const uint8_t bind_port,
+                    const uint16_t bind_port,
                     tcp_ip_hook_recv hook_recv)
 {
     stack->bind_data.bind_option = bind_option;
@@ -342,14 +339,14 @@ uint8_t tcp_ip_process_step(const tcp_ip_stack_t *const stack)
     uint8_t rc = 0U;
 
     uint8_t frame[ETH_FRAME_SIZE_MAX - ETH_FRAME_HEADER_SIZE_NO_CHECKSUM] = { 0U };
-    uint8_t frame_len = 0U;
+    uint16_t frame_len = 0U;
     rc = eth_driver_data_receive(stack->eth_driver,
                                  frame,
                                  &frame_len);
     TCP_IP_RC_CHECK(rc);
 
     uint8_t frame_response[ETH_FRAME_SIZE_MAX - ETH_FRAME_HEADER_SIZE_NO_CHECKSUM] = { 0U };
-    uint8_t frame_response_len = 0U;
+    uint16_t frame_response_len = 0U;
 
     tcp_ip_protocol_t protocol = tcp_ip_frame_eth_get_protocol(frame);
 
@@ -359,7 +356,7 @@ uint8_t tcp_ip_process_step(const tcp_ip_stack_t *const stack)
                         frame,
                         frame_len,
                         frame_response,
-                        frame_response_len);
+                        &frame_response_len);
 
     switch (protocol)
     {
@@ -368,7 +365,7 @@ uint8_t tcp_ip_process_step(const tcp_ip_stack_t *const stack)
                                    frame + TCP_IP_ARP_FRAME_HEADER_SIZE,
                                    frame_len - TCP_IP_ARP_FRAME_HEADER_SIZE,
                                    frame_response,
-                                   frame_response_len);
+                                   &frame_response_len);
         break;
 
         case TCP_IP_PROTO_IP:
@@ -376,7 +373,7 @@ uint8_t tcp_ip_process_step(const tcp_ip_stack_t *const stack)
                                   frame + ETH_FRAME_HEADER_SIZE_NO_CHECKSUM,
                                   frame_len - ETH_FRAME_HEADER_SIZE_NO_CHECKSUM,
                                   frame_response,
-                                  frame_response_len);
+                                  &frame_response_len);
         break;
 
         default:

@@ -2,6 +2,7 @@
      Sample file for enc28j60 driver.
 */
 
+#include "arch_specific.h"
 #include "bit_types.h"
 #include "eth_driver.h"
 #include "eth_driver_enc28j60.h"
@@ -11,9 +12,9 @@
 
 void recv_udp_5050_hook(const tcp_ip_stack_t *const tcp_ip_stack,
                       const uint8_t *const data,
-                      const uint8_t data_len,
+                      const uint16_t data_len,
                       uint8_t *const response_data,
-                      uint8_t *const respose_data_len)
+                      uint16_t *const respose_data_len)
 {
     // Received some data over UDP:5050, respond.
 }
@@ -40,7 +41,7 @@ int main(void)
     p_assert(rc == TCP_IP_RC_OK);
 
     rc = tcp_ip_bind(&tcp_ip_stack,
-                     TCP_IP_UDP,
+                     TCP_IP_PROTO_UDP,
                      5050U,
                      recv_udp_5050_hook);
     p_assert(rc == TCP_IP_RC_OK);

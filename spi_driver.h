@@ -9,14 +9,21 @@ enum spi_driver_return_codes_t
     SPI_RC_OK
 };
 
-typedef uint8_t (*data_send_ptr)(const uint8_t *const data_buf);
-typedef uint8_t (*data_recv_ptr)(uint8_t **data_buf, uint8_t *len);
+struct type_spi_driver;
+typedef struct type_spi_driver spi_driver_t;
+
+typedef uint8_t (*spi_data_send_ptr)(const spi_driver_t *const drv,
+                                     const uint8_t *const data_buf,
+                                     const uint8_t data_buf_len);
+typedef uint8_t (*spi_data_recv_ptr)(const spi_driver_t *const drv,
+                                     uint8_t *const data_buf,
+                                     uint8_t *const len);
 
 typedef
 struct type_spi_driver
 {
-    data_send_ptr data_send;
-    data_recv_ptr data_recv;
+    spi_data_send_ptr data_send;
+    spi_data_recv_ptr data_recv;
 
     // volatile uint8_t mutex;
 } spi_driver_t;

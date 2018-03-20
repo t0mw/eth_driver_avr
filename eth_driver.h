@@ -15,18 +15,23 @@ enum eth_driver_return_codes_t
     ETH_RC_ETH_PACKET_RECV_NO_DATA
 };
 
-typedef uint8_t (*link_up_ptr)(const eth_driver_t *const drv);
-typedef uint8_t (*data_send_ptr)(const eth_driver_t *const drv,
-                                 const uint8_t *const data_buf);
-typedef uint8_t (*data_recv_ptr)(const eth_driver_t *const drv,
-                                 uint8_t **data_buf, uint8_t *len);
+struct type_eth_driver;
+typedef struct type_eth_driver eth_driver_t;
+
+typedef uint8_t (*eth_driver_link_up_ptr)(const eth_driver_t *const drv);
+typedef uint8_t (*eth_driver_data_send_ptr)(const eth_driver_t *const drv,
+                                            const uint8_t *const data_buf,
+                                            const uint16_t data_buf_len);
+typedef uint8_t (*eth_driver_data_recv_ptr)(const eth_driver_t *const drv,
+                                            uint8_t *const data_buf,
+                                            uint16_t *const data_buf_len);
 
 typedef
 struct type_eth_driver
 {
-    link_up_ptr   is_link_up;
-    data_send_ptr data_send;
-    data_recv_ptr data_recv;
+    eth_driver_link_up_ptr   is_link_up;
+    eth_driver_data_send_ptr data_send;
+    eth_driver_data_recv_ptr data_recv;
 
     uint8_t       mac_address[6U];
 
@@ -37,11 +42,11 @@ uint8_t eth_driver_is_link_up(const eth_driver_t *const drv);
 
 uint8_t eth_driver_data_receive(const eth_driver_t *const drv,
                                 uint8_t *const data,
-                                uint8_t *const data_len);
+                                uint16_t *const data_len);
 
 uint8_t eth_driver_data_send(const eth_driver_t *const drv,
                              const uint8_t *const data,
-                             const uint8_t data_len);
+                             const uint16_t data_len);
 
 #endif
 

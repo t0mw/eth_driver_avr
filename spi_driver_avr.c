@@ -6,19 +6,19 @@
 
 uint8_t spi_driver_avr_init(spi_driver_t *const drv)
 {
-
+    return SPI_RC_OK;
 }
 
 uint8_t spi_driver_avr_data_receive(const spi_driver_t *const drv,
                                     uint8_t *const data,
                                     uint8_t *const data_len)
 {
-
+    return SPI_RC_OK;
 }
 
 uint8_t spi_driver_avr_data_send(const spi_driver_t *const drv,
                                  const uint8_t *const data,
                                  const uint8_t data_len)
 {
-
+    return SPI_RC_OK;
 }
