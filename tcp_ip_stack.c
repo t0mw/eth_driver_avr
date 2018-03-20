@@ -18,14 +18,14 @@ static tcp_ip_protocol_t tcp_ip_frame_eth_get_protocol(const uint8_t *const fram
     static const uint8_t ETHERTYPE_IP_H     = 0x08U;
     static const uint8_t ETHERTYPE_IP_L     = 0x00U;
 
-    const uint8_t ethertype_high = (uint8_t)frame[ETHERTYPE_POS];
-    const uint8_t ethertype_low = (uint8_t)frame[ETHERTYPE_POS + 1];
+    const uint8_t ethertype_high = frame[ETHERTYPE_POS];
+    const uint8_t ethertype_low = frame[ETHERTYPE_POS + 1];
 
-    if(ethertype_high == ETHERTYPE_IP_H &&
+    if(ethertype_high == ETHERTYPE_ARP_H &&
        ethertype_low == ETHERTYPE_ARP_L)
        return TCP_IP_PROTO_ARP;
 
-    if(ethertype_high == ETHERTYPE_ARP_H &&
+    if(ethertype_high == ETHERTYPE_IP_H &&
        ethertype_low == ETHERTYPE_IP_L)
        return TCP_IP_PROTO_IP;
 
